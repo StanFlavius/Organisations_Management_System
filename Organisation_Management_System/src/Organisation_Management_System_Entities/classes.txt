@@ -1,0 +1,25 @@
+    Organisation:
+        name
+        rating
+        profit
+        listBranches ( class )
+    Branch:
+        location ( class )
+        FinancialSituation
+        listDep ( class )
+        listPrjct ( class )
+    Department:
+        Dep_HR
+        Dep_Research&Dev
+        Dep_Administration
+        Dep_Production
+        Dep_Finances
+        Dep_Marketing
+    Project:
+        name
+        cost
+        time
+        no_of_people
+    Employee:
+        name
+        salary
