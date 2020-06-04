@@ -3,12 +3,20 @@ package Organisation_Management_System_Services;
 import Organisation_Management_System_Entities.*;
 import Organisation_Management_System_Exceptions.ValoareaDepasitaException;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class OrganisationService {
     static Scanner sc1 = new Scanner(System.in);
     private List<Organisation> organisationList;
     private ALLProjects allProjects;
+    private String output;
+
+    public String getOutput(){
+        return output;
+    }
 
     public void setAllProjects(ALLProjects allProjects) {
         this.allProjects = allProjects;
@@ -233,7 +241,7 @@ public class OrganisationService {
         doSORT();
     }*/
 
-    public void addOrganisation(Time time, dataOrganisations dataOrg, ImpozitTara impozit){
+    public void addOrganisation(Time time, dataOrganisations dataOrg, ImpozitTara impozit, organisationsServiceDB organisationsServiceDB, Connection connection){
         System.out.println("Va rog sa adaugati urmatoarele detalii, referitor la organizatie: ");
 
         System.out.println("Numele firmei: ");
@@ -290,7 +298,7 @@ public class OrganisationService {
         o.setBranchList(branchList);
 
         organisationList.add(o);
-
+        organisationsServiceDB.createData(o, connection);
         doSORT();
         dataOrg.loadData(o);
         System.out.println("Organizatia a fost infiintata cu succes");
@@ -314,19 +322,21 @@ public class OrganisationService {
         return null;
     }
 
-    public void bustOrganisation(){
+    public void bustOrganisation(organisationsServiceDB organisationsDB, branchesServiceDB branchesDB, employeesServiceDB employeesDB, projectsServiceDB projectsDB, Connection connection){
         if(organisationList.get(0).getProfit() >= 0) {
             System.out.println("Nu sunt firme cu profit negativ");
             return;
         }
         List<Organisation> orgs = new ArrayList<Organisation>();
         while(organisationList.get(0).getProfit() < 0){
+            Organisation o = organisationList.get(0);
+            organisationsDB.deleteData(connection, branchesDB, projectsDB, employeesDB, o);
             organisationList.remove(0);
         }
         System.out.println("Gata");
     }
 
-    public void addBranch(String organisation, ImpozitTara impozit){
+    public void addBranch(String organisation, ImpozitTara impozit, organisationsServiceDB organisationsDB, branchesServiceDB branchesDB, employeesServiceDB employeesDB, projectsServiceDB projectsDB, Connection connection){
         for(Organisation o : organisationList){
             if(o.getName().compareTo(organisation) == 0){
                 System.out.println("In ce tara? ");
@@ -360,11 +370,13 @@ public class OrganisationService {
                 branch.addDepertment(D_M);
 
                 o.addBranch(branch);
+
+                organisationsDB.updateDataBranches(connection, branchesDB, projectsDB, employeesDB, o, branch);
             }
         }
     }
 
-    public void hire() throws ValoareaDepasitaException {
+    public void hire(Connection connection, branchesServiceDB branchesDB, employeesServiceDB employeesDB) throws ValoareaDepasitaException {
         try {
             System.out.println("Dati-mi urmatoarele date despre aceasta persoana");
             System.out.println("nume: ");
@@ -386,7 +398,11 @@ public class OrganisationService {
                                 if (d.getDenumire().compareTo(dep) == 0) {
                                     if (d.getEmployeeList().size() == d.getMaxEmployee())
                                         throw new ValoareaDepasitaException("Nu mai poti adauga angajati aici. S-a atins numarul maxim. ");
-                                    else d.addEmployee(e);
+                                    else {
+                                        d.addEmployee(e);
+                                        branchesDB.updateData(connection, b);
+                                        employeesDB.createData(connection, e);
+                                    }
                                 }
                             }
                         }
@@ -408,7 +424,7 @@ public class OrganisationService {
         return count;
     }
 
-    public void addProject(String organisation){
+    public void addProject(String organisation, employeesServiceDB employeesDB, projectsServiceDB projectsDB, branchesServiceDB branchesDB, Connection connection){
         System.out.println("Am nevoie de urmataorele date: ");
         System.out.println("nume: ");
         String name = sc1.next();
@@ -532,10 +548,14 @@ public class OrganisationService {
                         List<String> nameEmployees = new ArrayList<>();
                         for(Employee e : employees){
                             nameEmployees.add(e.getName());
+                            employeesDB.updateData(connection,e);
                         }
+
                         p.setEmployeeList(nameEmployees);
                         b.addProject(p);
                         allProjects.addProject(p);
+                        branchesDB.updateData(connection, b);
+                        projectsDB.createData(connection, p);
                         break;
                     }
                 }
@@ -659,6 +679,8 @@ public class OrganisationService {
                         p.setEmployeeList(nameEmployees);
                         b.addProject(p);
                         allProjects.addProject(p);
+                        branchesDB.updateData(connection, b);
+                        projectsDB.createData(connection, p);
                         break;
                     }
                 }
@@ -694,7 +716,9 @@ public class OrganisationService {
         return total;
     }
 
-    public void updateSituation(){
+    public void updateSituation(organisationsServiceDB organisationsDB, branchesServiceDB branchesDB, employeesServiceDB employeesDB, projectsServiceDB projectsServiceDB, Connection connection){
+
+        StringBuilder sb = new StringBuilder();
         for(Organisation o : organisationList){
             Double total = 0.0;
             for(Branch b : o.getBranchList()){
@@ -709,6 +733,7 @@ public class OrganisationService {
                 List<Project> newProjects = new ArrayList<Project>();
                 List<String> nameEmployees = new ArrayList<String>();
                 for(Project p : b.getProjectList()){
+                    //System.out.println("               " + p.getName());
                     income+=p.getIncome();
                     p.setTime(p.getTime() - 1);
                     if(p.getTime() == 0){
@@ -716,15 +741,22 @@ public class OrganisationService {
                             nameEmployees.add(e);
                         }
                         allProjects.setAllProjects(allProjects.getDifferentProjects(p.getName()));
-                        System.out.println("Proiectul " + p.getName() + " s-a finalizat.");
+                        //System.out.println("Proiectul " + p.getName() + " s-a finalizat.");
+                        String out = "Proiectul " + p.getName() + " s-a finalizat." + "\n";
+                        sb.append(out);
+                        projectsServiceDB.deleteData(connection, p.getName());
                     }
-                    else newProjects.add(p);
+                    else {
+                        newProjects.add(p);
+                        projectsServiceDB.updateData(connection, p);
+                    }
                 }
 
                 for(Department d : b.getDepartmentsList()){
                     for(Employee e : d.getEmployeeList()){
                         if(nameEmployees.contains(e.getName())){
                             e.setTask(0);
+                            employeesDB.updateData(connection, e);
                         }
                     }
                 }
@@ -733,10 +765,19 @@ public class OrganisationService {
 
                 sit.setIncome(income);
                 b.setFinancialSituation(sit);
+                branchesDB.updateData(connection, b);
                 total += (b.getFinancialSituation().getIncome() - b.getFinancialSituation().getCost());
             }
+            /*List<Project> projectLists = new ArrayList<>();
+            projectLists = allProjects.getProjectList();
+            for(Project p : projectLists){
+                p.setTime(p.getTime() - 1);
+            }
+            allProjects.setAllProjects(projectLists);*/
             o.setProfit(total);
+            organisationsDB.updateData(connection, branchesDB, projectsServiceDB, employeesDB, o);
         }
+        output = sb.toString();
         doSORT();
     }
 
@@ -865,5 +906,165 @@ public class OrganisationService {
             if(me.getValue().equals(mx))
                 System.out.println(me.getKey());
         }
+    }
+
+    public List<Project> getProjectsGUI(auditService auditService) throws IOException {
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String d = sdf.format(date);
+        auditService.addInAudit("getProjectsGUI", d);
+        return allProjects.getProjectList();
+    }
+
+    public List<String> getBusiestDepGUIv1(auditService auditService) throws IOException {
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String dt = sdf.format(date);
+        auditService.addInAudit("getBusiestDepGUIv1", dt);
+        //TOATE ORGANIZATIILE
+        Map<String, Integer> hm = new HashMap<String, Integer>();
+        hm.put("Finances", 0);
+        hm.put("HR", 0);
+        hm.put("Marketing", 0);
+        hm.put("Production", 0);
+        hm.put("Research&Dev", 0);
+        for(Organisation o : organisationList){
+            for(Branch b : o.getBranchList()){
+                for(Department d : b.getDepartmentsList()){
+                    Integer tot = 0;
+                    for(Employee e : d.getEmployeeList()) {
+                        if (e.getTask() == 1) {
+                            tot++;
+                        }
+                    }
+                    Integer val = 0;
+                    Set< Map.Entry< String,Integer> > st = hm.entrySet();
+                    for(Map.Entry< String,Integer> me : st) {
+                        if (me.getKey().compareTo(d.getDenumire()) == 0) {
+                            val = me.getValue();
+                            break;
+                        }
+                    }
+                    hm.put(d.getDenumire(), val + tot);
+                }
+            }
+        }
+        Integer mx = 0;
+        Set< Map.Entry< String,Integer> > st = hm.entrySet();
+        for(Map.Entry< String,Integer> me : st){
+            if(me.getValue() > mx)
+                mx = me.getValue();
+        }
+
+        List<String> listDep = new ArrayList<>();
+
+        for(Map.Entry< String,Integer> me : st){
+            if(me.getValue().equals(mx)) {
+                //System.out.println(me.getKey() + " " + mx.toString());
+                listDep.add(me.getKey() + " " + mx.toString());
+            }
+        }
+
+
+
+        return  listDep;
+    }
+
+    public List<String> getBusiesDepGUIV2(String msg, auditService auditService) throws IOException {
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String dt = sdf.format(date);
+        auditService.addInAudit("getBusiesDepGUIV2", dt);
+        //DOAR O ORGANIZATIE
+        Map<String, Integer> hm = new HashMap<String, Integer>();
+        hm.put("Finances", 0);
+        hm.put("HR", 0);
+        hm.put("Marketing", 0);
+        hm.put("Production", 0);
+        hm.put("Research&Dev", 0);
+        for(Organisation o : organisationList){
+            if(o.getName().compareTo(msg) == 0){
+                for(Branch b : o.getBranchList()){
+                    for(Department d : b.getDepartmentsList()){
+                        Integer tot = 0;
+                        for(Employee e : d.getEmployeeList()){
+                            if(e.getTask() == 1){
+                                tot++;
+                            }
+                        }
+                        Integer val = 0;
+                        Set< Map.Entry< String,Integer> > st = hm.entrySet();
+                        for(Map.Entry< String,Integer> me : st) {
+                            if (me.getKey().compareTo(d.getDenumire()) == 0) {
+                                val = me.getValue();
+                                break;
+                            }
+                        }
+                        hm.put(d.getDenumire(), val + tot);
+                    }
+                }
+            }
+        }
+        Integer mx = 0;
+        Set< Map.Entry< String,Integer> > st = hm.entrySet();
+        for(Map.Entry< String,Integer> me : st){
+            if(me.getValue() > mx)
+                mx = me.getValue();
+        }
+
+        List<String> listDep = new ArrayList<>();
+
+        for(Map.Entry< String,Integer> me : st){
+            if(me.getValue().equals(mx))
+                listDep.add(me.getKey() + " " + mx.toString());
+        }
+
+        return  listDep;
+    }
+
+    public Organisation getEmployeesGUI(String org, auditService auditService) throws IOException {
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String d = sdf.format(date);
+        auditService.addInAudit("getEmployeesGUI", d);
+        Organisation organisation = new Organisation("a");
+        for(Organisation o : organisationList) {
+            if(o.getName().equals(org)) {
+                organisation = o;
+                break;
+            }
+        }
+        return organisation;
+    }
+
+    public List<String> getCountryGUI(auditService auditService) throws IOException {
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String d = sdf.format(date);
+        auditService.addInAudit("getCountry", d);
+        Map<String, Double> hm = new HashMap<String, Double>();
+        List<String> stringList = new ArrayList<>();
+
+        for(Organisation o : organisationList){
+            for(Branch b : o.getBranchList()){
+                String name = b.getLocation().getCountry();
+                Double profit = b.getFinancialSituation().getIncome() - b.getFinancialSituation().getCost() ;
+                hm.put(name, profit);
+            }
+        }
+
+        Double mx = 0.0;
+        Set< Map.Entry< String,Double> > st = hm.entrySet();
+        for(Map.Entry< String,Double> me : st){
+            if(me.getValue() > mx)
+                mx = me.getValue();
+        }
+
+        for(Map.Entry< String,Double> me : st){
+            if(me.getValue().equals(mx))
+                stringList.add("    " + me.getKey() + " " + mx.toString());
+                //System.out.println(me.getKey());
+        }
+        return stringList;
     }
 }

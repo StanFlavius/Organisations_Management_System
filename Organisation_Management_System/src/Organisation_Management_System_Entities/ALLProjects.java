@@ -21,7 +21,7 @@ public class ALLProjects {
     public List<Project> getDifferentProjects(String name){
         List<Project> newProjects = new ArrayList<Project>();
         for(Project p : allProjects) {
-            if(p.getName().compareTo(name) != 0) {
+            if(!p.getName().equals(name)) {
                 newProjects.add(p);
             }
         }

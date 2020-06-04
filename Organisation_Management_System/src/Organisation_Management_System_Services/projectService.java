@@ -25,7 +25,7 @@ public class projectService {
         List<Project> projectList = new ArrayList<>();
         BufferedReader bufferedReader;
         try{
-            bufferedReader = new BufferedReader(new FileReader("infoProjects.csv"));
+            bufferedReader = new BufferedReader(new FileReader("Organisation_Management_System/infoProjects.csv"));
             String line = bufferedReader.readLine();
             while(line != null){
                 List<String> listOfData = new ArrayList<>();
@@ -59,7 +59,7 @@ public class projectService {
     public void loadData(Project project){
         BufferedWriter bufferedWriter;
         try {
-            bufferedWriter = new BufferedWriter(new FileWriter("infoProjects.csv", true));
+            bufferedWriter = new BufferedWriter(new FileWriter("Organisation_Management_System/infoProjects.csv", true));
             StringBuilder sb = new StringBuilder();
             sb.append(project.getName());
             sb.append(",");
@@ -88,7 +88,7 @@ public class projectService {
         BufferedWriter bufferedWriter;
 
         try {
-            bufferedWriter = new BufferedWriter(new FileWriter("infoProjects.csv"));
+            bufferedWriter = new BufferedWriter(new FileWriter("Organisation_Management_System/infoProjects.csv"));
             bufferedWriter.write("");
             for(Project project : projectList){
                 instance.loadData(project);

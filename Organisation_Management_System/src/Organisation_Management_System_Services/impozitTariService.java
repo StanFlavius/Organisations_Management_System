@@ -20,7 +20,7 @@ public class impozitTariService {
         BufferedReader bufferedReader;
         Map<String, Double> mpImpozite = new HashMap<>();
         try{
-            bufferedReader = new BufferedReader(new FileReader("infoImpozitTari.csv"));
+            bufferedReader = new BufferedReader(new FileReader("Organisation_Management_System/infoImpozitTari.csv"));
             String line = bufferedReader.readLine();
             while(line != null){
                 List<String> listOfData = new ArrayList<>();

@@ -1,8 +1,6 @@
 package Organisation_Management_System_Services;
 
 import Organisation_Management_System_Entities.*;
-import com.sun.org.apache.xpath.internal.operations.Or;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -35,7 +33,7 @@ public class dataOrganisations {
         BufferedWriter bufferedWriter;
 
         try {
-            bufferedWriter = new BufferedWriter(new FileWriter("infoOrganisation.csv"));
+            bufferedWriter = new BufferedWriter(new FileWriter("Organisation_Management_System/infoOrganisation.csv"));
             bufferedWriter.write("");
             for(Organisation o : listUpdated){
                 instance.loadData(o);
@@ -51,7 +49,7 @@ public class dataOrganisations {
         List<Organisation> organisationList = new ArrayList<>();
         BufferedReader bufferedReader;
         try{
-            bufferedReader = new BufferedReader(new FileReader("infoOrganisation.csv"));
+            bufferedReader = new BufferedReader(new FileReader("Organisation_Management_System/infoOrganisation.csv"));
             String line = bufferedReader.readLine();
             while(line != null){
                 //System.out.println(line);
@@ -198,7 +196,7 @@ public class dataOrganisations {
     public void loadData(Organisation o){
         BufferedWriter bufferedWriter;
         try{
-            bufferedWriter = new BufferedWriter(new FileWriter("infoOrganisation.csv", true));
+            bufferedWriter = new BufferedWriter(new FileWriter("Organisation_Management_System/infoOrganisation.csv", true));
             StringBuilder sb = new StringBuilder();
             sb.append(o.getName());
             sb.append(',');

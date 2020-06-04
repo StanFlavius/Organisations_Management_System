@@ -17,6 +17,10 @@ public class Branch {
         this.projectList = new ArrayList<Project>();
     }
 
+    public void setImpozit(Double impozit){
+        this.impozit = impozit;
+    }
+
     public void addDepertment(Department d) {
         this.departmentsList.add(d);
     }
